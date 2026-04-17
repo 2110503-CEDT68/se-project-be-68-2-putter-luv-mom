@@ -3,6 +3,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import connectDB from './config/db'
 import menuRoutes from './routes/menu'
+import preorderRoutes from './routes/preorder'
 
 dotenv.config()
 
@@ -13,6 +14,7 @@ app.use(express.json())
 
 // Routes
 app.use('/api/v1/menus', menuRoutes)
+app.use('/api/v1/preorders', preorderRoutes)
 
 // Health check
 app.get('/api/v1/health', (_req, res) => {
