@@ -28,4 +28,18 @@ router.post('/:venueId/items', async (req: Request, res: Response): Promise<void
   }
 })
 
+// GET /api/v1/preorders/:venueId — get current pre-order list for venue
+router.get('/:venueId', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const preOrder = await PreOrder.findOne({ venueId: req.params.venueId })
+    if (!preOrder) {
+      res.json({ success: true, data: { venueId: req.params.venueId, items: [], total: 0 } })
+      return
+    }
+    res.json({ success: true, data: preOrder })
+  } catch {
+    res.status(500).json({ success: false, error: 'Server error' })
+  }
+})
+
 export default router
