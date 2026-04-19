@@ -42,4 +42,24 @@ router.get('/:venueId', async (req: Request, res: Response): Promise<void> => {
   }
 })
 
+// DELETE /api/v1/preorders/:venueId/items/:menuId — remove item from pre-order
+router.delete('/:venueId/items/:menuId', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const preOrder = await PreOrder.findOne({ venueId: req.params.venueId })
+    if (!preOrder) { res.status(404).json({ success: false, error: 'Pre-order not found' }); return }
+
+    const before = preOrder.items.length
+    preOrder.items = preOrder.items.filter(i => i.menuId !== req.params.menuId) as typeof preOrder.items
+    if (preOrder.items.length === before) {
+      res.status(404).json({ success: false, error: 'Item not found in pre-order' })
+      return
+    }
+
+    await preOrder.save()
+    res.json({ success: true, data: preOrder })
+  } catch {
+    res.status(500).json({ success: false, error: 'Server error' })
+  }
+})
+
 export default router
