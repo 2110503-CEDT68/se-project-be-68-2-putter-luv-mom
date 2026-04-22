@@ -86,4 +86,27 @@ router.put('/:venueId/items/:menuId', async (req: Request, res: Response): Promi
   }
 })
 
+// PATCH /api/v1/preorders/:venueId — save/replace entire pre-order items array
+router.patch('/:venueId', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { items } = req.body
+    if (!Array.isArray(items)) {
+      res.status(400).json({ success: false, error: 'items must be an array' })
+      return
+    }
+
+    const preOrder = await PreOrder.findOneAndUpdate(
+      { venueId: req.params.venueId },
+      { items },
+      { new: true, runValidators: true, upsert: true }
+    )
+
+    await preOrder!.save()
+    res.json({ success: true, data: preOrder })
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Invalid data'
+    res.status(400).json({ success: false, error: msg })
+  }
+})
+
 export default router
