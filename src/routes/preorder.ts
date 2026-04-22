@@ -109,4 +109,28 @@ router.patch('/:venueId', async (req: Request, res: Response): Promise<void> => 
   }
 })
 
+// PATCH /api/v1/preorders/:venueId/items/:menuId/quantity — edit quantity of a single item
+router.patch('/:venueId/items/:menuId/quantity', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { quantity } = req.body
+    if (typeof quantity !== 'number' || quantity < 1) {
+      res.status(400).json({ success: false, error: 'quantity must be a positive integer' })
+      return
+    }
+
+    const preOrder = await PreOrder.findOne({ venueId: req.params.venueId })
+    if (!preOrder) { res.status(404).json({ success: false, error: 'Pre-order not found' }); return }
+
+    const item = preOrder.items.find(i => i.menuId === req.params.menuId)
+    if (!item) { res.status(404).json({ success: false, error: 'Item not found in pre-order' }); return }
+
+    item.quantity = quantity
+    await preOrder.save()
+    res.json({ success: true, data: preOrder })
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Invalid data'
+    res.status(400).json({ success: false, error: msg })
+  }
+})
+
 export default router
