@@ -4,6 +4,10 @@ import dotenv from 'dotenv'
 import connectDB from './config/db'
 import menuRoutes from './routes/menu'
 import preorderRoutes from './routes/preorder'
+import authRoutes from './routes/auth'
+import restaurantRoutes from './routes/restaurant'
+import reservationRoutes from './routes/reservation'
+import reviewRoutes from './routes/review'
 
 dotenv.config()
 
@@ -15,6 +19,10 @@ app.use(express.json())
 // Routes
 app.use('/api/v1/menus', menuRoutes)
 app.use('/api/v1/preorders', preorderRoutes)
+app.use('/api/v1/auth', authRoutes)
+app.use('/api/v1/restaurants', restaurantRoutes)
+app.use('/api/v1/reservations', reservationRoutes)
+app.use('/api/v1/reviews', reviewRoutes)
 
 // Health check
 app.get('/api/v1/health', (_req, res) => {
