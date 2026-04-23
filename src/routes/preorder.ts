@@ -1,7 +1,18 @@
 import { Router, Request, Response } from 'express'
 import PreOrder from '../models/PreOrder'
+import { protect, adminOnly } from '../middleware/auth'
 
 const router = Router()
+
+// GET /api/v1/preorders — admin only, list all preorders across all venues
+router.get('/', protect, adminOnly, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const preorders = await PreOrder.find({}).sort({ updatedAt: -1 })
+    res.json({ success: true, count: preorders.length, data: preorders })
+  } catch {
+    res.status(500).json({ success: false, error: 'Server error' })
+  }
+})
 
 // POST /api/v1/preorders/:venueId/items — add item to pre-order list
 router.post('/:venueId/items', async (req: Request, res: Response): Promise<void> => {
