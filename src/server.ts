@@ -21,12 +21,16 @@ app.get('/api/v1/health', (_req, res) => {
   res.json({ success: true, message: 'Menu API is running' })
 })
 
-const PORT = process.env.PORT || 5000
-
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`)
+// Connect DB then start server only in local development
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5003
+  connectDB().then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`)
+    })
   })
-})
+} else {
+  connectDB()
+}
 
 export default app
