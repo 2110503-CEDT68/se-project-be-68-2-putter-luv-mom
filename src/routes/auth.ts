@@ -52,4 +52,20 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
   }
 })
 
+// GET /api/v1/auth/me
+import { protect, AuthRequest } from '../middleware/auth'
+
+router.get('/me', protect, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const user = await User.findById(req.user?.id).select('-password')
+    if (!user) {
+      res.status(404).json({ success: false, error: 'User not found' })
+      return
+    }
+    res.json({ success: true, data: user })
+  } catch {
+    res.status(500).json({ success: false, error: 'Server error' })
+  }
+})
+
 export default router

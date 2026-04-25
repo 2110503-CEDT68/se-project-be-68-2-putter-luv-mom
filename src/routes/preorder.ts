@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import PreOrder from '../models/PreOrder'
-import { protect, adminOnly } from '../middleware/auth'
+import Reservation from '../models/Reservation'
+import { protect, adminOnly, AuthRequest } from '../middleware/auth'
 
 const router = Router()
 
@@ -15,8 +16,18 @@ router.get('/', protect, adminOnly, async (req: Request, res: Response): Promise
 })
 
 // POST /api/v1/preorders/:venueId/items — add item to pre-order list
-router.post('/:venueId/items', async (req: Request, res: Response): Promise<void> => {
+router.post('/:venueId/items', protect, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const reservation = await Reservation.findOne({
+      userId: req.user?.id,
+      restaurantId: req.params.venueId,
+      status: { $ne: 'cancelled' },
+    })
+    if (!reservation) {
+      res.status(400).json({ success: false, error: 'You can only preorder from a restaurant you have reserved' })
+      return
+    }
+
     const { menuId, name, price, quantity } = req.body
     let preOrder = await PreOrder.findOne({ venueId: req.params.venueId })
 
@@ -98,8 +109,18 @@ router.put('/:venueId/items/:menuId', async (req: Request, res: Response): Promi
 })
 
 // PATCH /api/v1/preorders/:venueId — save/replace entire pre-order items array
-router.patch('/:venueId', async (req: Request, res: Response): Promise<void> => {
+router.patch('/:venueId', protect, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const reservation = await Reservation.findOne({
+      userId: req.user?.id,
+      restaurantId: req.params.venueId,
+      status: { $ne: 'cancelled' },
+    })
+    if (!reservation) {
+      res.status(400).json({ success: false, error: 'You can only preorder from a restaurant you have reserved' })
+      return
+    }
+
     const { items } = req.body
     if (!Array.isArray(items)) {
       res.status(400).json({ success: false, error: 'items must be an array' })
