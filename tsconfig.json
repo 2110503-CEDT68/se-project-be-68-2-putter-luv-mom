@@ -4,13 +4,14 @@
     "module": "commonjs",
     "lib": ["ES2020"],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",          // ← เปลี่ยนจาก "./src" เป็น "." เพื่อให้ครอบ /test/ ด้วย
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "types": ["jest", "node"] // ← เพิ่มบรรทัดนี้
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "test/**/*"], // ← เพิ่ม test/**/*
   "exclude": ["node_modules", "dist"]
 }
