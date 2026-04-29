@@ -4,13 +4,15 @@ import { protect, adminOnly } from '../middleware/auth'
 
 const router = Router()
 
-// GET /api/v1/restaurants — supports ?category=&search=
+// GET /api/v1/restaurants — supports ?category=&search=&province=&district=
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { category, search } = req.query as Record<string, string | undefined>
+    const { category, search, province, district } = req.query as Record<string, string | undefined>
 
     const filter: Record<string, unknown> = {}
     if (category) filter.category = category
+    if (province) filter.province = { $regex: province, $options: 'i' }
+    if (district) filter.district = { $regex: district, $options: 'i' }
     if (search) filter.name = { $regex: search, $options: 'i' }
 
     const restaurants = await Restaurant.find(filter).sort({ createdAt: -1 })
