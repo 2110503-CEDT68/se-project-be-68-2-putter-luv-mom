@@ -6,7 +6,7 @@ import { protect, adminOnly, AuthRequest } from '../middleware/auth'
 const router = Router()
 
 // GET /api/v1/preorders — admin only, list all preorders across all venues
-router.get('/', protect, adminOnly, async (req: Request, res: Response): Promise<void> => {
+router.get('/', protect, adminOnly, async (_req: Request, res: Response): Promise<void> => {
   try {
     const preorders = await PreOrder.find({}).sort({ updatedAt: -1 })
     res.json({ success: true, count: preorders.length, data: preorders })
@@ -15,11 +15,24 @@ router.get('/', protect, adminOnly, async (req: Request, res: Response): Promise
   }
 })
 
-// POST /api/v1/preorders/:venueId/items — add item to pre-order list
+// GET /api/v1/preorders/mine — caller's own preorders across venues (used by /my-orders)
+router.get('/mine', protect, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id
+    if (!userId) { res.status(401).json({ success: false, error: 'Not authenticated' }); return }
+    const preorders = await PreOrder.find({ userId }).sort({ updatedAt: -1 })
+    res.json({ success: true, count: preorders.length, data: preorders })
+  } catch {
+    res.status(500).json({ success: false, error: 'Server error' })
+  }
+})
+
+// POST /api/v1/preorders/:venueId/items — add item to caller's pre-order list for the venue
 router.post('/:venueId/items', protect, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const userId = req.user?.id
     const reservation = await Reservation.findOne({
-      userId: req.user?.id,
+      userId,
       restaurantId: req.params.venueId,
       status: { $ne: 'cancelled' },
     })
@@ -29,10 +42,10 @@ router.post('/:venueId/items', protect, async (req: AuthRequest, res: Response):
     }
 
     const { menuId, name, price, quantity } = req.body
-    let preOrder = await PreOrder.findOne({ venueId: req.params.venueId })
+    let preOrder = await PreOrder.findOne({ userId, venueId: req.params.venueId })
 
     if (!preOrder) {
-      preOrder = new PreOrder({ venueId: req.params.venueId, items: [] })
+      preOrder = new PreOrder({ userId, venueId: req.params.venueId, items: [] })
     }
 
     const existing = preOrder.items.find(i => i.menuId === menuId)
@@ -50,12 +63,13 @@ router.post('/:venueId/items', protect, async (req: AuthRequest, res: Response):
   }
 })
 
-// GET /api/v1/preorders/:venueId — get current pre-order list for venue
-router.get('/:venueId', async (req: Request, res: Response): Promise<void> => {
+// GET /api/v1/preorders/:venueId — caller's pre-order list for the venue
+router.get('/:venueId', protect, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const preOrder = await PreOrder.findOne({ venueId: req.params.venueId })
+    const userId = req.user?.id
+    const preOrder = await PreOrder.findOne({ userId, venueId: req.params.venueId })
     if (!preOrder) {
-      res.json({ success: true, data: { venueId: req.params.venueId, items: [], total: 0 } })
+      res.json({ success: true, data: { userId, venueId: req.params.venueId, items: [], total: 0 } })
       return
     }
     res.json({ success: true, data: preOrder })
@@ -64,10 +78,11 @@ router.get('/:venueId', async (req: Request, res: Response): Promise<void> => {
   }
 })
 
-// DELETE /api/v1/preorders/:venueId/items/:menuId — remove item from pre-order
-router.delete('/:venueId/items/:menuId', async (req: Request, res: Response): Promise<void> => {
+// DELETE /api/v1/preorders/:venueId/items/:menuId — remove item from caller's pre-order
+router.delete('/:venueId/items/:menuId', protect, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const preOrder = await PreOrder.findOne({ venueId: req.params.venueId })
+    const userId = req.user?.id
+    const preOrder = await PreOrder.findOne({ userId, venueId: req.params.venueId })
     if (!preOrder) { res.status(404).json({ success: false, error: 'Pre-order not found' }); return }
 
     const before = preOrder.items.length
@@ -84,8 +99,8 @@ router.delete('/:venueId/items/:menuId', async (req: Request, res: Response): Pr
   }
 })
 
-// PUT /api/v1/preorders/:venueId/items/:menuId — update item quantity and recalculate total
-router.put('/:venueId/items/:menuId', async (req: Request, res: Response): Promise<void> => {
+// PUT /api/v1/preorders/:venueId/items/:menuId — update item quantity in caller's pre-order
+router.put('/:venueId/items/:menuId', protect, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { quantity } = req.body
     if (typeof quantity !== 'number' || quantity < 1) {
@@ -93,7 +108,8 @@ router.put('/:venueId/items/:menuId', async (req: Request, res: Response): Promi
       return
     }
 
-    const preOrder = await PreOrder.findOne({ venueId: req.params.venueId })
+    const userId = req.user?.id
+    const preOrder = await PreOrder.findOne({ userId, venueId: req.params.venueId })
     if (!preOrder) { res.status(404).json({ success: false, error: 'Pre-order not found' }); return }
 
     const item = preOrder.items.find(i => i.menuId === req.params.menuId)
@@ -108,11 +124,12 @@ router.put('/:venueId/items/:menuId', async (req: Request, res: Response): Promi
   }
 })
 
-// PATCH /api/v1/preorders/:venueId — save/replace entire pre-order items array
+// PATCH /api/v1/preorders/:venueId — replace caller's items array (confirm order)
 router.patch('/:venueId', protect, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const userId = req.user?.id
     const reservation = await Reservation.findOne({
-      userId: req.user?.id,
+      userId,
       restaurantId: req.params.venueId,
       status: { $ne: 'cancelled' },
     })
@@ -128,8 +145,8 @@ router.patch('/:venueId', protect, async (req: AuthRequest, res: Response): Prom
     }
 
     const preOrder = await PreOrder.findOneAndUpdate(
-      { venueId: req.params.venueId },
-      { items },
+      { userId, venueId: req.params.venueId },
+      { userId, venueId: req.params.venueId, items },
       { new: true, runValidators: true, upsert: true }
     )
 
@@ -141,8 +158,8 @@ router.patch('/:venueId', protect, async (req: AuthRequest, res: Response): Prom
   }
 })
 
-// PATCH /api/v1/preorders/:venueId/items/:menuId/quantity — edit quantity of a single item
-router.patch('/:venueId/items/:menuId/quantity', async (req: Request, res: Response): Promise<void> => {
+// PATCH /api/v1/preorders/:venueId/items/:menuId/quantity — edit a single item quantity
+router.patch('/:venueId/items/:menuId/quantity', protect, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { quantity } = req.body
     if (typeof quantity !== 'number' || quantity < 1) {
@@ -150,7 +167,8 @@ router.patch('/:venueId/items/:menuId/quantity', async (req: Request, res: Respo
       return
     }
 
-    const preOrder = await PreOrder.findOne({ venueId: req.params.venueId })
+    const userId = req.user?.id
+    const preOrder = await PreOrder.findOne({ userId, venueId: req.params.venueId })
     if (!preOrder) { res.status(404).json({ success: false, error: 'Pre-order not found' }); return }
 
     const item = preOrder.items.find(i => i.menuId === req.params.menuId)

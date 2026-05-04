@@ -8,6 +8,7 @@ export interface IPreOrderItem {
 }
 
 export interface IPreOrder extends Document {
+  userId: string
   venueId: string
   items: IPreOrderItem[]
   total: number
@@ -27,12 +28,15 @@ const PreOrderItemSchema = new Schema<IPreOrderItem>(
 
 const PreOrderSchema = new Schema<IPreOrder>(
   {
-    venueId: { type: String, required: true, unique: true },
+    userId: { type: String, required: true, index: true },
+    venueId: { type: String, required: true },
     items: { type: [PreOrderItemSchema], default: [] },
     total: { type: Number, default: 0 },
   },
   { timestamps: true }
 )
+
+PreOrderSchema.index({ userId: 1, venueId: 1 }, { unique: true })
 
 PreOrderSchema.pre('save', function (next) {
   this.total = this.items.reduce((sum, item) => sum + item.price * item.quantity, 0)

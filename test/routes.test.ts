@@ -72,6 +72,39 @@ describe('PreOrder Routes', () => {
     })
   })
 
+  // ─── GET /api/v1/preorders/mine ───
+  describe('GET /mine', () => {
+    it('returns preorders scoped to authenticated user', async () => {
+      ;(PreOrder.find as jest.Mock).mockReturnValue({
+        sort: jest.fn().mockResolvedValue([{ _id: 'po1', userId: 'user1' }])
+      })
+      const res = await request(appUser).get('/api/v1/preorders/mine')
+      expect(res.status).toBe(200)
+      expect(PreOrder.find).toHaveBeenCalledWith({ userId: 'user1' })
+      expect(res.body.count).toBe(1)
+    })
+
+    it('returns 401 when no user on request', async () => {
+      const appAnon = (() => {
+        const app = express()
+        app.use(express.json())
+        app.use((req: any, _res: any, next: any) => { req.user = undefined; next() })
+        app.use('/api/v1/preorders', preorderRouter)
+        return app
+      })()
+      const res = await request(appAnon).get('/api/v1/preorders/mine')
+      expect(res.status).toBe(401)
+    })
+
+    it('returns 500 on server error', async () => {
+      ;(PreOrder.find as jest.Mock).mockReturnValue({
+        sort: jest.fn().mockRejectedValue(new Error('DB Error'))
+      })
+      const res = await request(appUser).get('/api/v1/preorders/mine')
+      expect(res.status).toBe(500)
+    })
+  })
+
   // ─── POST /api/v1/preorders/:venueId/items ───
   describe('POST /:venueId/items', () => {
     it('returns 400 when no active reservation exists', async () => {
