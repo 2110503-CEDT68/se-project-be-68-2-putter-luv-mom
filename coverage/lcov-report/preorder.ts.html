@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>123/123</span>
+                <span class='fraction'>125/125</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">96% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>46/46</span>
+                <span class='fraction'>48/50</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>107/107</span>
+                <span class='fraction'>109/109</span>
             </div>
         
             
@@ -249,7 +249,11 @@
 <a name='L184'></a><a href='#L184'>184</a>
 <a name='L185'></a><a href='#L185'>185</a>
 <a name='L186'></a><a href='#L186'>186</a>
-<a name='L187'></a><a href='#L187'>187</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L187'></a><a href='#L187'>187</a>
+<a name='L188'></a><a href='#L188'>188</a>
+<a name='L189'></a><a href='#L189'>189</a>
+<a name='L190'></a><a href='#L190'>190</a>
+<a name='L191'></a><a href='#L191'>191</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -283,6 +287,7 @@
 <span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -290,6 +295,7 @@
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
@@ -380,6 +386,7 @@
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -387,6 +394,7 @@
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
@@ -468,14 +476,16 @@ router.get('/mine', protect, async (req: AuthRequest, res: Response): Promise&lt
 router.post('/:venueId/items', protect, async (req: AuthRequest, res: Response): Promise&lt;void&gt; =&gt; {
   try {
     const userId = req.user?.id
-    const reservation = await Reservation.findOne({
-      userId,
-      restaurantId: req.params.venueId,
-      status: { $ne: 'cancelled' },
-    })
-    if (!reservation) {
-      res.status(400).json({ success: false, error: 'You can only preorder from a restaurant you have reserved' })
-      return
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (req.user?.role !== 'admin') {
+      const reservation = await Reservation.findOne({
+        userId,
+        restaurantId: req.params.venueId,
+        status: { $ne: 'cancelled' },
+      })
+      if (!reservation) {
+        res.status(400).json({ success: false, error: 'You can only preorder from a restaurant you have reserved' })
+        return
+      }
     }
 &nbsp;
     const { menuId, name, price, quantity } = req.body
@@ -565,14 +575,16 @@ router.put('/:venueId/items/:menuId', protect, async (req: AuthRequest, res: Res
 router.patch('/:venueId', protect, async (req: AuthRequest, res: Response): Promise&lt;void&gt; =&gt; {
   try {
     const userId = req.user?.id
-    const reservation = await Reservation.findOne({
-      userId,
-      restaurantId: req.params.venueId,
-      status: { $ne: 'cancelled' },
-    })
-    if (!reservation) {
-      res.status(400).json({ success: false, error: 'You can only preorder from a restaurant you have reserved' })
-      return
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (req.user?.role !== 'admin') {
+      const reservation = await Reservation.findOne({
+        userId,
+        restaurantId: req.params.venueId,
+        status: { $ne: 'cancelled' },
+      })
+      if (!reservation) {
+        res.status(400).json({ success: false, error: 'You can only preorder from a restaurant you have reserved' })
+        return
+      }
     }
 &nbsp;
     const { items } = req.body
@@ -628,7 +640,7 @@ export default router
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-04T14:19:47.570Z
+                at 2026-05-04T15:16:46.934Z
             </div>
         <script src="prettify.js"></script>
         <script>

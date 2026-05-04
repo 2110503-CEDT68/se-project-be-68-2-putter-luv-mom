@@ -31,14 +31,16 @@ router.get('/mine', protect, async (req: AuthRequest, res: Response): Promise<vo
 router.post('/:venueId/items', protect, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id
-    const reservation = await Reservation.findOne({
-      userId,
-      restaurantId: req.params.venueId,
-      status: { $ne: 'cancelled' },
-    })
-    if (!reservation) {
-      res.status(400).json({ success: false, error: 'You can only preorder from a restaurant you have reserved' })
-      return
+    if (req.user?.role !== 'admin') {
+      const reservation = await Reservation.findOne({
+        userId,
+        restaurantId: req.params.venueId,
+        status: { $ne: 'cancelled' },
+      })
+      if (!reservation) {
+        res.status(400).json({ success: false, error: 'You can only preorder from a restaurant you have reserved' })
+        return
+      }
     }
 
     const { menuId, name, price, quantity } = req.body
@@ -128,14 +130,16 @@ router.put('/:venueId/items/:menuId', protect, async (req: AuthRequest, res: Res
 router.patch('/:venueId', protect, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id
-    const reservation = await Reservation.findOne({
-      userId,
-      restaurantId: req.params.venueId,
-      status: { $ne: 'cancelled' },
-    })
-    if (!reservation) {
-      res.status(400).json({ success: false, error: 'You can only preorder from a restaurant you have reserved' })
-      return
+    if (req.user?.role !== 'admin') {
+      const reservation = await Reservation.findOne({
+        userId,
+        restaurantId: req.params.venueId,
+        status: { $ne: 'cancelled' },
+      })
+      if (!reservation) {
+        res.status(400).json({ success: false, error: 'You can only preorder from a restaurant you have reserved' })
+        return
+      }
     }
 
     const { items } = req.body
