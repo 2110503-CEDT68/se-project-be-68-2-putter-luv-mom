@@ -2,6 +2,8 @@ import dotenv from 'dotenv'
 import mongoose from 'mongoose'
 import Menu from './models/Menu'
 import Restaurant from './models/Restaurant'
+import Review from './models/Review'
+import PreOrder from './models/PreOrder'
 
 dotenv.config()
 
@@ -187,6 +189,41 @@ async function seed() {
   const insertedRestaurants = await Restaurant.insertMany(sampleRestaurants)
   console.log(`Inserted ${insertedRestaurants.length} restaurants:`)
   insertedRestaurants.forEach(r => console.log(`  - [${r.category}] ${r.name} (${r.district}, ${r.province})`))
+
+  // Seed reviews — 3-6 per restaurant, ratings 3-5 with one realistic comment each.
+  // Without reviews, restaurants display as 0★ / 0 reviews and US3-4 sort-by-rating
+  // is a no-op. This gives the demo meaningful aggregates.
+  await Review.deleteMany({})
+  const sampleComments = [
+    'รสชาติดีมาก คุ้มราคา',
+    'อร่อย บรรยากาศดี',
+    'จะกลับมาอีกแน่นอน',
+    'พนักงานบริการดี',
+    'พอใช้ได้ ราคาไม่แรง',
+    'อร่อยและสะอาด',
+  ]
+  const reviewSeeds: Array<{ restaurantId: string; userId: string; rating: number; comment: string }> = []
+  insertedRestaurants.forEach((r, idx) => {
+    const count = 3 + (idx % 4) // 3..6
+    for (let i = 0; i < count; i++) {
+      const rating = 3 + ((idx + i) % 3) // 3..5 distributed
+      reviewSeeds.push({
+        restaurantId: String(r._id),
+        userId: `seed-user-${(idx * 7 + i) % 9}`,
+        rating,
+        comment: sampleComments[(idx + i) % sampleComments.length],
+      })
+    }
+  })
+  await Review.insertMany(reviewSeeds)
+  console.log(`Inserted ${reviewSeeds.length} reviews across ${insertedRestaurants.length} restaurants`)
+
+  // Drop legacy preorders. Old docs were keyed only by venueId (no userId), which
+  // means every user shared the same cart per restaurant. The new model requires
+  // userId; legacy rows can't be saved. Wiping is safe — preorders are transient.
+  const dropped = await PreOrder.deleteMany({})
+  await PreOrder.collection.dropIndexes().catch(() => {}) // remove old unique index
+  console.log(`Dropped ${dropped.deletedCount ?? 0} legacy preorders`)
 
   await mongoose.disconnect()
   console.log('Done.')
